@@ -13,7 +13,7 @@ const WebSocketClient:React.FC = () =>{
     const [wsAddress, setwsAddress] = useState<string>('0.0.0.0')
     const [wsPort, setwsPort] = useState<number>(18181)
     const [sendType, setSendType] = useState<number>(1)
-    const [cmdTemplateSel, setcmdTemplateSel] = useState<string>('cmd0')
+    const [cmdTemplateSel, setcmdTemplateSel] = useState<string>('getAllCase')
     const cmdTypes: object[] = [
         {value:'getAllCase', label:'用例目录查询'},
         {value:'action', label:'用例执行'},
