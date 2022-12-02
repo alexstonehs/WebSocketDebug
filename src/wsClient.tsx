@@ -103,10 +103,12 @@ const WebSocketClient:React.FC = () =>{
      * 发数据
      */
     const sendMsg = () =>{
-        if(wSocket !== undefined){
+        if(connStat && wSocket !== undefined){
             wSocket.send(sendMsgContent)
         }else{
-            messageApi.warning(`[${wsAddress}:${wsPort}] 未连接，无法发送`)
+            messageApi.warning(`[${wsAddress}:${wsPort}] 未连接，无法发送`).then((res)=>{
+                console.log(`connectedPrompt: ${res}`)
+            })
         }
     }
     /**
@@ -302,7 +304,7 @@ const WebSocketClient:React.FC = () =>{
                         <TextArea id='textAreaSend' rows={15} value={displayMsgContent} onChange={handleDisplayMsgChange}/>
                     </Row>
                     <Row className='contentStyle'>
-                        <span>实际发送数据：</span>
+                        <span>实际发送数据（Base64转换后）：</span>
                     </Row>
                     <Row >
                         <TextArea id='textAreaSendConv' rows={6} value={sendMsgContent}/>
