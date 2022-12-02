@@ -1,25 +1,40 @@
 import React, {useEffect, useState} from "react";
-import {Col, Row, Button, Input, Select, Space, InputNumber, Radio, message} from 'antd';
+import {Col, Row, Button, Input, Select, Space, InputNumber, message, Tag} from 'antd';
+import {
+    CheckCircleOutlined,
+    ClockCircleOutlined,
+    CloseCircleOutlined,
+    ExclamationCircleOutlined,
+    MinusCircleOutlined,
+    SyncOutlined,
+} from '@ant-design/icons';
+import {Buffer} from 'buffer'
 //import type { RadioChangeEvent } from 'antd'
 import sd from "silly-datetime"
+import cmdHelper from './commandHelper'
+import {CommandData} from './commandData'
 import './wsClient.css'
 const {TextArea} = Input
 
 
 const WebSocketClient:React.FC = () =>{
-    const [wsMsg, setwsMsg] = useState('')
+    const [wsMsg, setwsMsg] = useState<string>('')
+    const [convertedMsg, setConvertedMsg] = useState<string>('')
+    const [displayMsgContent, setDisplayMsgContent] = useState<string>('')
     const [sendMsgContent, setSendMsgContent] = useState<string>('')
     const [wSocket, setwSocket] = useState<WebSocket | undefined>(undefined)
-    const [wsAddress, setwsAddress] = useState<string>('0.0.0.0')
+    const [wsAddress, setwsAddress] = useState<string>('127.0.0.1')
     const [wsPort, setwsPort] = useState<number>(18181)
-    const [sendType, setSendType] = useState<number>(1)
-    const [cmdTemplateSel, setcmdTemplateSel] = useState<string>('getAllCase')
+    const [userId, setUserId] = useState<string>('ZQY01xjeea8DWpcc')
+    const [appKey, setAppKey] = useState<string>('QWCabin2022')
+    const [connStat, setConnStat] = useState<boolean>(false)
+    const [cmdTemplateSel, setcmdTemplateSel] = useState<string>('GetAllCase')
     const cmdTypes: object[] = [
-        {value:'getAllCase', label:'用例目录查询'},
-        {value:'action', label:'用例执行'},
-        {value:'actionState', label:'运行状态查询'},
-        {value:'actionControl', label:'运行状态变更'},
-        {value:'entityLog', label:'运行日志回调'},
+        {value:'GetAllCase', label:'用例目录查询'},
+        {value:'Action', label:'用例执行'},
+        {value:'ActionState', label:'运行状态查询'},
+        {value:'ActionControl', label:'运行状态变更'},
+        {value:'EntityLog', label:'运行日志回调'},
     ]
     const [messageApi, contextHolder] = message.useMessage();
     //let wSocket:WebSocket
@@ -31,14 +46,30 @@ const WebSocketClient:React.FC = () =>{
         let ws = new WebSocket(connAddress)
         ws.onopen = () =>{
             console.log('websocket connected')
+            setConnStat(true)
             messageApi.info(`[${wsAddress}:${wsPort}] 已连接`).then((res:boolean)=>{
                 console.log(`connectedPrompt: ${res}`)
             })
+            ws.onclose = function (e) {
+                console.log('websocket disconnected')
+                setConnStat(false)
+                messageApi.info('WebSocket已断开').then((res: boolean) => {
+                    console.log(`connectedPrompt: ${res}`)
+                })
+            }
         }
         ws.onmessage = function(e){
             handleReceiveMsg(e)
         }
+        // ws.onclose = function (e) {
+        //     console.log('websocket disconnected')
+        //     setConnStat(false)
+        //     messageApi.info('WebSocket已断开').then((res: boolean) => {
+        //         console.log(`connectedPrompt: ${res}`)
+        //     })
+        // }
         ws.onerror = function (e){
+            setConnStat(false)
             messageApi.error('连接失败').then((res:boolean)=>{
                 console.log(`connectedPrompt: ${res}`)
             })
@@ -52,7 +83,21 @@ const WebSocketClient:React.FC = () =>{
     const handleReceiveMsg = (event: MessageEvent) =>{
         //const msgList = wsMsg + '\n'+ event.data
         setwsMsg(wsMsg=> wsMsg + '\n'+ event.data)
+        convertReceivedMsg(event.data)
         scrollTextAreaToBottom()
+    }
+    const convertReceivedMsg = (msg:string) =>{
+        const data = JSON.parse(msg)
+        if(data.code === "1"){
+            //const cData = atob(data.data)
+            const cData = Buffer.from(data.data, 'base64').toString()
+            const convertedObj = {
+                code: data.code,
+                msg: data.msg,
+                data: JSON.parse(cData)
+            }
+            setConvertedMsg(convertedMsg => convertedMsg + '\n'+ JSON.stringify(convertedObj))
+        }
     }
     /**
      * 发数据
@@ -73,19 +118,12 @@ const WebSocketClient:React.FC = () =>{
                 messageApi.warning('WebSocket已经连接')
                 return
             }
-            // messageApi.warning('WebSocket已经连接')
-            // return
         }
-        // else if(wSocket === WebSocket) {
-        //     if((wSocket as WebSocket).readyState === 1){
-        //         messageApi.warning('WebSocket已经连接')
-        //         return
-        //     }
-        // }
         webSocketInit()
     }
     const clearSend = () =>{
         setSendMsgContent('')
+        setDisplayMsgContent('')
     }
     const getTimeStr = ():string =>{
         return sd.format(new Date(), 'YYYY-MM-DD HH:mm:ss')
@@ -101,6 +139,14 @@ const WebSocketClient:React.FC = () =>{
     const getDiv = () =>{
         return <div>abc</div>
     }
+    const getStatusSign = () =>{
+        if(connStat){
+            return <Tag icon={<CheckCircleOutlined />} color="success">已连接</Tag>
+        }
+        else{
+            return <Tag icon={<ClockCircleOutlined />} color="default">未连接</Tag>
+        }
+    }
     /**
      * 地址变更事件
      * @param e
@@ -108,6 +154,22 @@ const WebSocketClient:React.FC = () =>{
     const wsAddressChange = (e:React.ChangeEvent<HTMLInputElement>) =>{
         const newAddr = e.target.value
         setwsAddress(newAddr)
+    }
+    /**
+     * AppKey变更事件
+     * @param e
+     */
+    const appKeyChange = (e:React.ChangeEvent<HTMLInputElement>) =>{
+        const newAppKey = e.target.value
+        setAppKey(newAppKey)
+    }
+    /**
+     * User ID 变更事件
+     * @param e
+     */
+    const userIdChange = (e:React.ChangeEvent<HTMLInputElement>) =>{
+        const newId = e.target.value
+        setUserId(newId)
     }
     /**
      * 端口变更事件
@@ -125,35 +187,58 @@ const WebSocketClient:React.FC = () =>{
         console.log(`已选择 ${value}`)
         setcmdTemplateSel(value)
     }
+    /**
+     * 更新待发指令内容
+     */
     const updateSendData = () =>{
+        //let curData:cmdData = new CommandData(userId, appKey, cmdTemplateSel)
+        let curData:CommandData = {
+            userId:userId,
+            appKey:appKey,
+            templateCmdSel:cmdTemplateSel,
+            cmdData: null
+            }
         switch(cmdTemplateSel){
-            case 'getAllCase':
-                const content0 = {
-                    userid: 'ZQY01xjeea8DWpcc',
-                    timestamp: Date.now(),
-                    sign: '',
-                    funid: 'GetAllCase'
+            case 'Action':
+                curData.cmdData = {
+                    id: 'eb86c061-8a32-4ed9-9f61-f71a06f6e1bb\\04cfb11b-de5e-44ea-9f6e-6c623fe99fde\\f0660625-4a5b-4511-95a5-ec16092ae3b',
+                    isrecording: 'true'
                 }
-                setSendMsgContent(JSON.stringify(content0))
                 break
-            case 'cmd1':
-                const content1 = {
-                    funcIndex:1,
-                    operation: 'execute'
+            case 'ActionState':
+                curData.cmdData = {
+                    taskId: '04cfb11b4ed9'
                 }
-                setSendMsgContent(JSON.stringify(content1))
+                break;
+            case 'ActionControl':
+                curData.cmdData = {
+                    taskId: '04cfb11b4ed9',
+                    operation: 'pause'
+                }
                 break
-            case 'cmd2':
-                const content2 = {
-                    funcIndex:2,
-                    operation: 'cancel'
+            case 'EntityLog':
+                curData.cmdData = {
+                    entityId: 'eb86c061-8a32-4ed9-9f61-f71a06f6e1bb',
+                    timestamp: '',
+                    name: '拖动图标',
+                    msg: '拖动图标到[X:50,y:100]',
+                    result: '0'
                 }
-                setSendMsgContent(JSON.stringify(content2))
                 break
         }
+
+        let sendCmd = cmdHelper.getSendData(curData)
+
+        setSendMsgContent(sendCmd.convertedMsg)
+        setDisplayMsgContent(sendCmd.originMsg)
     }
     const handleSendMsgChange = (e:React.ChangeEvent<HTMLTextAreaElement>) =>{
         setSendMsgContent(e.target.value)
+    }
+    const handleDisplayMsgChange = (e:React.ChangeEvent<HTMLTextAreaElement>) =>{
+        setDisplayMsgContent(e.target.value)
+        const base64Str = cmdHelper.reconvertData(e.target.value)
+        setSendMsgContent(base64Str)
     }
     // const sendTypeRadioChange = (e:RadioChangeEvent) =>{
     //     setSendType(e.target.value)
@@ -177,46 +262,61 @@ const WebSocketClient:React.FC = () =>{
             {contextHolder}
             <Row>
                 <Col span={8} offset={1}>
-                    <h1>WebSocket通讯</h1>
+                    <h1>远程控制调试</h1>
                 </Col>
             </Row>
             <Row>
                 <Col offset={1} span={9}>
-                    <Space>
-                        地址：
-                        <Input id="inputAddr" placeholder="地址" value={wsAddress} style={{width:200}} onChange={wsAddressChange}></Input>
-                        端口：
-                        <InputNumber id="inputPort" placeholder="端口" value={wsPort} style={{width:100}} onChange={wsPortChange}></InputNumber>
-                        <Button onClick={connect}>连接</Button>
-                    </Space>
-                </Col>
+                    <Row>
+                        <Space>
+                            WebSocket地址：
+                            <Input id="inputAddr" placeholder="地址" value={wsAddress} style={{width:200}} onChange={wsAddressChange}></Input>
+                            端口：
+                            <InputNumber id="inputPort" placeholder="端口" value={wsPort} style={{width:100}} onChange={wsPortChange}></InputNumber>
+                            <Button onClick={connect}>连接</Button>
 
-            </Row>
-            <Row className="contentStyle">
-                <Col span={10} offset={1}>
-                    <Space>
-                        选取预设指令：
-                        <Select defaultValue='getAllCase' style={{width: 180}} onChange={handleCmdSel} options={cmdTypes} />
-                        <Button onClick={clearSend}>清空</Button>
-
-                        <Button type="primary" onClick={sendMsg}>发送</Button>
-                    </Space>
+                        </Space>
+                    </Row>
+                    <Row className='contentStyle'>
+                        <Space>
+                            UserID:
+                            <Input id='inputUserId' placeholder='User ID' value={userId} className='inputWidth' onChange={userIdChange}></Input>
+                            AppKey:
+                            <Input id='inputAppKey' placeholder='App Key' value={appKey} className='inputWidth' onChange={appKeyChange}></Input>
+                            <Button danger onClick={updateSendData}>更新数据</Button>
+                        </Space>
+                    </Row>
+                    <Row className='contentStyle'>
+                        <Space>
+                            选取预设指令：
+                            <Select defaultValue='GetAllCase' style={{width: 180}} onChange={handleCmdSel} options={cmdTypes} />
+                            <Button onClick={clearSend}>清空</Button>
+                            <Button type="primary" onClick={sendMsg}>发送</Button>
+                            {getStatusSign()}
+                        </Space>
+                    </Row>
+                    <Row className='contentStyle'>
+                        <span>待发送数据：</span>
+                    </Row>
+                    <Row>
+                        <TextArea id='textAreaSend' rows={15} value={displayMsgContent} onChange={handleDisplayMsgChange}/>
+                    </Row>
+                    <Row className='contentStyle'>
+                        <span>实际发送数据：</span>
+                    </Row>
+                    <Row >
+                        <TextArea id='textAreaSendConv' rows={6} value={sendMsgContent}/>
+                    </Row>
                 </Col>
-            </Row>
-            <Row className="contentStyle">
-                <Col span={2} offset={1}>
-                    <span>待发送数据：</span>
-                </Col>
-                <Col span={2} offset={9}>
-                    <span>接收数据：</span>
-                </Col>
-            </Row>
-            <Row>
-                <Col span={10} offset={1}>
-                    <TextArea id='textAreaSend' rows={15} value={sendMsgContent} onChange={handleSendMsgChange}/>
-                </Col>
-                <Col span={10} offset={1}>
-                    <TextArea id='textAreaMsg' rows={15} value={wsMsg}/>
+                <Col offset={2} span={9}>
+                    <Row>
+                        接收数据:
+                        <TextArea id='textAreaMsg' rows={15} value={wsMsg}/>
+                    </Row>
+                    <Row className='contentStyle'>
+                        Base64转换后：
+                        <TextArea id='textAreaConverted' rows={15} value={convertedMsg}/>
+                    </Row>
                 </Col>
             </Row>
         </>
