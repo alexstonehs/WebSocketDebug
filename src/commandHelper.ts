@@ -31,16 +31,15 @@ const getSendData = (cmdData:CommandData):CommandSendStr =>{
         //     originCmd = JSON.stringify(content).replace(/\\\\/g, '\\')
         //     //originCmd = originCmd.replace(/\\"/g, '"')
         // }else{
-            originCmd = JSON.stringify(content)
-        //}
 
+        //}
+        originCmd = JSON.stringify(content)
         const base64Str = Buffer.from(JSON.stringify(cmdData.cmdData)).toString('base64')
         content.data = base64Str
         const convertedCmd = JSON.stringify(content)
         commands.originMsg = originCmd
         commands.convertedMsg = convertedCmd
     }
-    // //jsonStr = JSON.stringify(content)
     return commands
 }
 const reconvertData = (originData:string) :string=>{

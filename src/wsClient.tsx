@@ -246,6 +246,7 @@ const WebSocketClient:React.FC = () =>{
     //     setSendType(e.target.value)
     // }
     useEffect(()=>{
+        document.title = '调试页'
         updateSendData()
         //webSocketInit()
         return()=>{
