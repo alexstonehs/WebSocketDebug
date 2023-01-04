@@ -2,11 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Col, Row, Button, Input, Select, Space, InputNumber, message, Tag} from 'antd';
 import {
     CheckCircleOutlined,
-    ClockCircleOutlined,
-    CloseCircleOutlined,
-    ExclamationCircleOutlined,
-    MinusCircleOutlined,
-    SyncOutlined,
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import {Buffer} from 'buffer'
 //import type { RadioChangeEvent } from 'antd'
@@ -237,6 +233,10 @@ const WebSocketClient:React.FC = () =>{
     const handleSendMsgChange = (e:React.ChangeEvent<HTMLTextAreaElement>) =>{
         setSendMsgContent(e.target.value)
     }
+    /**
+     * 发送数据编辑 - 文字变更
+     * @param e input组件
+     */
     const handleDisplayMsgChange = (e:React.ChangeEvent<HTMLTextAreaElement>) =>{
         setDisplayMsgContent(e.target.value)
         const base64Str = cmdHelper.reconvertData(e.target.value)
